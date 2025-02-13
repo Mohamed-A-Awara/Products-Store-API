@@ -3,6 +3,17 @@ import Products from "../Models/Products.model.js";
 import ApiError from "../Utils/ApiError.js";
 import { ValidationError } from "../Utils/ValidationError.js";
 
+import fs from 'fs'
+import path from 'path'
+
+
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+
+
 const createCategory = async (req, res, next) => {
     try {
         let category = req.body;
@@ -17,7 +28,9 @@ const createCategory = async (req, res, next) => {
                 .status(400)
                 .json({ status: "Fail", data: "This Category is already exists" });
         }
-
+        if (req.file) {
+            category.imageSrc = `/uploads/${req.file.filename}`;
+        }
             category.createdAt = new Date().toISOString();
             category.userId = req.id
             let newCategory = new Category(category);
@@ -87,13 +100,18 @@ const deleteCategory = async (req , res , next )=>{
         if (! category)
             return res.status(404).json({status : "Fail" , data : `No Category with this Id : ${id}`})
 
+        if (category.imageSrc) {
+                    const imagePath =  category.imageSrc;
+                    console.log(imagePath);
+                    fs.unlinkSync(`.${imagePath}`);
+                }
         let productsInCategory = await Products.deleteMany({category : id})
         await Category.findByIdAndDelete(id)
 
 
         res.status(200).json({status : "Success" , data : category , dataInCategory : productsInCategory})
     } catch (error) {
-        next( new ApiError(`Error From Delete Category`))
+        next( new ApiError(`Error From Delete Category : ${error}`))
     }
 }
 const updateCategory = async (req , res , next )=>{
@@ -104,12 +122,19 @@ const updateCategory = async (req , res , next )=>{
         if (! oldCategory)
             return res.status(404).json({status : 'Fail' , data : `No Category with this Id : ${id}`})
 
+        if (req.file) {
+                    if (oldCategory.imageSrc) {
+                        const oldImagePath =  oldCategory.imageSrc;
+                        console.log(oldImagePath);
+                        fs.unlinkSync(`.${oldImagePath}`)
+                    }
+                }
         let newCategory = await Category.findByIdAndUpdate(id , {...category} , {new : true})
 
         res.status(200).json({status : "Success" , data : newCategory})
         
     } catch (error) {
-        next( new ApiError(`Error From Update Category ` , 500))
+        next( new ApiError(`Error From Update Category : ${error} ` , 500))
     }
 }
 export { createCategory  ,getAllCategories , getCategoryById , deleteCategory , updateCategory , getAllProductInCategory};

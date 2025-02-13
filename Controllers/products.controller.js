@@ -2,6 +2,14 @@ import Category from "../Models/Category.model.js";
 import Products from "../Models/Products.model.js";
 import ApiError from "../Utils/ApiError.js";
 import { ValidationError } from "../Utils/ValidationError.js";
+import fs from 'fs'
+import path from 'path'
+
+
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const craeteProduct = async (req, res, next) => {
     try {
@@ -21,7 +29,9 @@ const craeteProduct = async (req, res, next) => {
                 .status(404)
                 .json({ status: "Fail", data: "No Category Title with this name" });
         }
-
+        if (req.file) {
+            product.productImage = `/uploads/${req.file.filename}`;
+        }
         product.createdAt = new Date().toISOString();
         product.category = compareCategory._id;
         let newProduct = new Products(product);
